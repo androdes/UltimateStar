@@ -1,0 +1,37 @@
+{
+  "name": "sautomate",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf dist && bun build --outdir=dist --sourcemap=external --target=node --splitting index.ts",
+    "start": "bun run server.ts",
+    "craftDaemon": "pm2 start \"bun src/workflow/mainCraft.ts\" --name craft",
+    "transportDaemon": "pm2 start \"bun src/workflow/mainTransport.ts\" --name transport",
+    "miningDaemon": "pm2 start \"bun src/workflow/mainMining.ts\" --name mining",
+    "cleanStopped": "pm2 list | grep 'stopped' | awk '{print $2}' | xargs -I {} pm2 delete {}"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@project-serum/anchor": "0.25.0",
+    "@solana/spl-token": "^0.3.9",
+    "@solana/web3.js": "^1.87.2",
+    "@staratlas/crafting": "^0.9.7",
+    "@staratlas/data-source": "^0.6.5",
+    "@staratlas/factory": "^0.6.0",
+    "@staratlas/galactic-marketplace": "^0.9.7",
+    "@staratlas/profile-faction": "^0.3.5",
+    "@staratlas/sage": "^0.9.7",
+    "bigint": "^0.4.2",
+    "bigint-buffer": "^1.1.5",
+    "bs58": "^5.0.0",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "discord.js": "^14.14.1",
+    "fp-ts": "^2.16.1"
+  }
+}
