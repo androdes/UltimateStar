@@ -1,5 +1,5 @@
 
-import bot from './config/CALI.json';
+import bot from './config/FIBO.json';
 import {run} from "./Bot.ts";
 
 await run(bot);

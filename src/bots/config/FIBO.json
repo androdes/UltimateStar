@@ -1,0 +1,10 @@
+{
+  "name": "FIBO",
+  "route": [[40, 30],[18, 25]],
+  "cooldown": 56,
+  "toolPerScan": 30,
+  "toolsReloadAmount": 720,
+  "fullFuel": 1350,
+  "warpCooldown": 60,
+  "warper": false
+}
