@@ -43,9 +43,18 @@ import {
 } from "./StarbaseManager.ts";
 import {getCargoStatsDefinition, getCargoTypeAddress, getCargoPodByAuthority} from "./CargoManager.ts";
 import {PLANET_LOOKUP} from "./PlanetManager.ts";
-import {connection} from "../../FleetHandler.ts";
 
 
+const addPriorityFee: InstructionReturn = (x) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100 });
+            resolve({ instruction, signers: [] });  // Resolve the promise with the result
+        } catch (error) {
+            reject(error);  // Reject the promise if an error occurs
+        }
+    });
+};
 
 const getFleetAddress = (fleetName: string) => {
     const fleetLabel = stringToByteArray(fleetName, 32);
@@ -90,6 +99,8 @@ export const dockToStarbase = async (fleetName: string, starbaseName: string) =>
     const gameState = GAME.data.gameState as PublicKey;
     const input = 0 as LoadingBayToIdleInput;
     const ix = [];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.idleToLoadingBay(
         SAGE_PROGRAM,
         signer,
@@ -121,6 +132,8 @@ export const undockFromStarbase = async (fleetName: string, starbaseName: string
     const gameState = GAME.data.gameState as PublicKey;
     const input = 0 as LoadingBayToIdleInput;
     const ix =[];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.loadingBayToIdle(
         SAGE_PROGRAM,
         signer,
@@ -166,6 +179,8 @@ export const exitSubwarp = async (fleetName: string)=>{
     );
     const cargoStatsDefinition = await getCargoStatsDefinition();
     const ix = [];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.movementSubwarpHandler(
         SAGE_PROGRAM,
         CARGO_PROGRAM,
@@ -243,7 +258,8 @@ export const withdrawFromFleet = async (fleetName: string, resource: string, amo
     const gameState =GAME.data.gameState as PublicKey;
     let amountBN = BN.min(new BN(amount), new BN(tokenAccountFrom?.amount));
     const input = { keyIndex: 0, amount: amountBN } as WithdrawCargoFromFleetInput;
-
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.withdrawCargoFromFleet(
         SAGE_PROGRAM,
         CARGO_PROGRAM,
@@ -391,6 +407,8 @@ export const depositCargoToFleet = async (fleetName: string, resource: string, a
     const input = { keyIndex: 0, amount: amountBN } as DepositCargoToFleetInput;
     const [cargoType] =await getCargoTypeAddress(SAGE_RESOURCES_MINTS[resource]);
 
+    const priority = [addPriorityFee];
+    ix.push(...priority);
 
     ix.push( Fleet.depositCargoToFleet(
         SAGE_PROGRAM,
@@ -448,6 +466,8 @@ export const startMining = async (fleetName: string, ore: string, starbaseName: 
     const gameState =GAME.data.gameState as PublicKey;
     const input = { keyIndex: 0 } as StartMiningAsteroidInput;
     const ix = [];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.startMiningAsteroid(
         SAGE_PROGRAM,
         signer,
@@ -534,6 +554,10 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
 
     const resourceTokenTo = ataResourceTokenTo.address;
     ix.push(ataResourceTokenTo.instructions);
+
+    const priority = [addPriorityFee];
+    ix.push(...priority);
+
     ix.push(
         await Fleet.asteroidMiningHandler(
             SAGE_PROGRAM,
@@ -695,6 +719,10 @@ export const warp = async (fleetName: string, toStarbaseName: string|[number, nu
         toSector: coordinates,
     } as WarpToCoordinateInput;
     const ix = [];
+
+    const priority = [addPriorityFee];
+    ix.push(...priority);
+
     ix.push(await Fleet.warpToCoordinate(
         SAGE_PROGRAM,
         signer,
@@ -733,16 +761,7 @@ export const warp = async (fleetName: string, toStarbaseName: string|[number, nu
     console.log(`${fleetName} Subwarp started!`);
 }
 
-const addPriorityFee: InstructionReturn = (x) => {
-    return new Promise((resolve, reject) => {
-        try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10 });
-            resolve({ instruction, signers: [] });  // Resolve the promise with the result
-        } catch (error) {
-            reject(error);  // Reject the promise if an error occurs
-        }
-    });
-};
+
 
 export const scan = async (fleetName: string) => {
     const fleetAccount: Fleet = await getFleetAccount(fleetName);
@@ -852,7 +871,8 @@ export const scan = async (fleetName: string) => {
 export const exitWarp = async (fleetName: string) =>{
     const fleetAccount: Fleet = await getFleetAccount(fleetName);
     const ix: InstructionReturn[] = [];
-
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.moveWarpHandler(SAGE_PROGRAM, fleetAccount.key));
     let tx = await prepareTransaction(ix);
     console.log(`${fleetName} exit warp start`);
@@ -898,7 +918,7 @@ export const getFleetResourceAmount = async (fleetName: string, resource: string
     if(!tokenAccountFrom){
         return 0;
     }
-    return Number(tokenAccountFrom.amount);
+    return Math.floor(Number(tokenAccountFrom.amount));
 }
 
 export const getFleetState= async (fleetName: string):Promise<FleetStateData> => {

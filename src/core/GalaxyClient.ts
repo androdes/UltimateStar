@@ -11,7 +11,7 @@ import {
     SAGE_PROGRAM,
     verifyTransaction
 } from "./Globals.ts";
-import {signer} from "./Wallet.ts";
+import {signer, wallet} from "./Wallet.ts";
 import {
     getStarbaseAddress,
     getStarbaseAmountByMint,
@@ -428,19 +428,22 @@ export const exchangeOrderSell = async (resourceMint: PublicKey, quantity: numbe
 
 export const exchangeOrderBuy = async (resourceMint: PublicKey, quantity: number)=>{
     const lowestSellOrder = await getLowestSellOrder(resourceMint);
-    const exchangeQT = Math.min(lowestSellOrder.orderQtyRemaining, quantity);
+    console.log(`${JSON.stringify(lowestSellOrder)}`);
+    const exchangeQT: number = Math.abs(Math.min(lowestSellOrder.orderQtyRemaining, quantity));
+
     console.log(`Lowest sell order : ${lowestSellOrder.price/DECIMALS_atlas} qt bought:${exchangeQT}`);
     const {transaction, signers } = await gmClientService.getCreateExchangeTransaction(
         getConnection(),
         lowestSellOrder,
-        signer.publicKey(),
+        wallet.publicKey,
         exchangeQT,
         new PublicKey("traderDnaR5w6Tcoi3NFm53i48FTDNbGjBSZwWXDRrg"));
 
-    console.log(`Sending exchange(buy) order`);
-    try {
-        const sig = await getConnection().sendTransaction(transaction, [signer, ...signers]);
-        const result = await getConnection().confirmTransaction(sig, 'confirmed');
+    console.log(`Sending exchange(buy) order ${exchangeQT}`);
+    //try {
+        const connection =getConnection();
+        const sig = await connection.sendTransaction(transaction, [signer, ...signers]);
+        const result = await connection.confirmTransaction(sig, 'confirmed');
         if(result.value.err){
             console.log("Exchange(buy) failed ");
         }else{
@@ -448,14 +451,14 @@ export const exchangeOrderBuy = async (resourceMint: PublicKey, quantity: number
                 await exchangeOrderBuy(resourceMint, quantity-exchangeQT);
             }
         }
-    }catch (e) {
+    //}catch (e) {
 
-        if (e && e.signature) {
-            console.log(`Erreur lors de la transaction, vérification de la signature : ${e.signature}`);
-            await verifyTransaction(e.signature);
-        } else {
-            console.error(`Erreur sans signature de transaction : ${e} ${JSON.stringify(e)}`);
-        }
-    }
+        //if (e && e.signature) {
+          //  console.log(`Erreur lors de la transaction, vérification de la signature : ${e.signature}`);
+            //await verifyTransaction(e.signature);
+        //} else {
+          //  console.error(`Erreur sans signature de transaction : ${e} ${JSON.stringify(e)}`);
+        //}
+    //}
 }
 
