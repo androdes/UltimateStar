@@ -1,0 +1,10 @@
+{
+  "name": "CALI",
+  "route": [[40, 30],[28, 18]],
+  "cooldown": 41,
+  "toolPerScan": 85,
+  "toolsReloadAmount": 11000,
+  "fullFuel": 5750,
+  "warpCooldown": 120,
+  "warper": false
+}

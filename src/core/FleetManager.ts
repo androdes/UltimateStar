@@ -48,13 +48,15 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
         }
     });
 };
+
+
 
 const getFleetAddress = (fleetName: string) => {
     const fleetLabel = stringToByteArray(fleetName, 32);
@@ -377,9 +379,10 @@ export const depositCargoToFleet = async (fleetName: string, resource: string, a
     const ix_0 = tokenAccountToATA.instructions;
 
     ix.push(ix_0);
+
     //topup explicit amount
-    if(tokenAccountTo && amount<9999){
-        const alreadyIn = Number(tokenAccountTo.delegatedAmount);
+    if(tokenAccountTo && amount<999999){
+        const alreadyIn = Number(tokenAccountTo.amount);
         amount = amount - alreadyIn;
         if(amount<=0){
             console.error(`${fleetName} a déjà le cargo rempli`);
@@ -489,9 +492,10 @@ export const startMining = async (fleetName: string, ore: string, starbaseName: 
         let rx= await executeTransaction(tx);
         if (!rx.value.isOk()) {
             throw Error(`${fleetName} Failed to mine ${ore} `);
+        }else{
+            console.log(`${fleetName} started mining! Waiting for ${timeToWait} seconds...`);
+            await new Promise((resolve) => setTimeout(resolve, timeToWait * 1000));
         }
-        console.log(`${fleetName} started mining! Waiting for ${timeToWait} seconds...`);
-        await new Promise((resolve) => setTimeout(resolve, timeToWait * 1000));
     }catch (e) {
 
         if (e && e.signature) {
@@ -545,7 +549,7 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
         mineItem,
         true
     );
-    const ix =[];
+    let ix =[];
     let ataResourceTokenTo = createAssociatedTokenAccountIdempotent(
         SAGE_RESOURCES_MINTS[ore],
         cargoHold,
@@ -554,8 +558,29 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
 
     const resourceTokenTo = ataResourceTokenTo.address;
     ix.push(ataResourceTokenTo.instructions);
-
     const priority = [addPriorityFee];
+    ix.push(...priority);
+    let tx1 = await prepareTransaction(ix);
+    console.log(`${fleetName} tx prepared ATA resource token`);
+    try {
+        let rx1= await executeTransaction(tx1);
+        if (!rx1.value.isOk()) {
+            throw Error(`${fleetName} Failed to create ATA`);
+            return;
+        }
+        console.log(`${fleetName} created ATA!`);
+    }catch (e) {
+
+        if (e && e.signature) {
+            console.log(`Erreur lors de la transaction, vérification de la signature : ${e.signature}`);
+            console.log(`${JSON.stringify(e)}`);
+            await verifyTransaction(e.signature);
+        } else {
+            console.error(`Erreur sans signature de transaction : ${e}`);
+            return;
+        }
+    }
+    ix =[];
     ix.push(...priority);
 
     ix.push(
@@ -642,6 +667,8 @@ export const subwarp = async (fleetName: string, toStarbaseName: string|[number,
         toSector: coordinates,
     } as StartSubwarpInput;
     const ix = [];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
     ix.push(await Fleet.startSubwarp(
         SAGE_PROGRAM,
         signer,
@@ -790,6 +817,8 @@ export const scan = async (fleetName: string) => {
     let ix =[];
     let tx;
     if(sduTokenTo.instructions){
+        const priorityx = [addPriorityFee];
+        ix.push(...priorityx);
         ix.push(sduTokenTo.instructions);
         tx = await prepareTransaction(ix);
         console.log(`${fleetName} sdu token account to create`);

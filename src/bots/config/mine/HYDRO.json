@@ -1,0 +1,13 @@
+{
+  "name": "HYDROGEN MINER",
+  "starbase": "UST-CSS",
+  "resource": "hydrogen",
+  "route": [[40, 30]],
+  "miningTime": 1500,
+  "foodReloadAmount": 128,
+  "minFuel": 50,
+  "fuelReloadAmount": 9788,
+  "ammoReloadAmount": 0,
+  "warpCooldown": 180,
+  "warper": false
+}

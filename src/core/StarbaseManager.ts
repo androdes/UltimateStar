@@ -5,6 +5,7 @@ import {readFromRPCOrError} from "@staratlas/data-source";
 import {PublicKey} from "@solana/web3.js";
 import {getConnection, SAGE_PLAYER_PROFILE, SAGE_PROGRAM} from "./Globals.ts";
 import {getAccount} from "@solana/spl-token";
+import {getCargoPodByAuthority} from "./CargoManager.ts";
 
 
 const starbaseCache = {};
@@ -78,7 +79,7 @@ export const getStarbaseResourceAmount = async (starbaseName: string, resource: 
     const starbasePlayerCargoPodsPubkey = cargoPod.key;//new PublicKey("YLDNhVCX64CmSTrc5SQsKVhR8nBvW5AM3p69B928Ygq");
     const mintToken = SAGE_RESOURCES_MINTS[resource];
     const someCargoAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
+        getConnection(),
         mintToken,
         starbasePlayerCargoPodsPubkey,
         true,
@@ -106,7 +107,7 @@ export const getStarbaseAmountByMint = async (starbaseName: string, mint: string
     const starbasePlayerCargoPodsPubkey = cargoPod.key;
     const mintToken = new PublicKey(mint);
     const someCargoAccount = await getOrCreateAssociatedTokenAccount(
-        connection,
+        getConnection(),
         mintToken,
         starbasePlayerCargoPodsPubkey,
         true,

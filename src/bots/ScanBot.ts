@@ -75,10 +75,10 @@ async function doScan(bot: any, nbToolkits: number){
         const nbSDUBefore = await getFleetResourceAmount(bot.name, "sdu") as number;
         let nbSDUCollected =1500;
         console.log("Trying to find SDU");
-        while (nbSDUCollected>0){
-           await new Promise((resolve) => setTimeout(resolve, 0.5*1000));
-           nbSDUCollected=await getNbSDULastSeconds(1);
-        }
+        //while (nbSDUCollected>0){
+        //   await new Promise((resolve) => setTimeout(resolve, 0.5*1000));
+        //   nbSDUCollected=await getNbSDULastSeconds(1);
+        //}
         const result = await scan(bot.name);
 
         const nbToolkits = await getFleetResourceAmount(bot.name, "tool") as number;
