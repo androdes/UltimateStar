@@ -48,7 +48,7 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 17000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs

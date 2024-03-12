@@ -1,6 +1,6 @@
 {
   "name": "CALI",
-  "route": [[40, 30],[28, 18]],
+  "route": [[40, 30],[27, 15]],
   "cooldown": 41,
   "toolPerScan": 85,
   "toolsReloadAmount": 11000,
