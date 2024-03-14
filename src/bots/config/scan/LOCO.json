@@ -1,0 +1,10 @@
+{
+  "name": "LOCO",
+  "route": [[40, 30],[7, 9]],
+  "cooldown": 46,
+  "toolPerScan": 19,
+  "toolsReloadAmount": 1957,
+  "fullFuel": 1390,
+  "warpCooldown": 120,
+  "warper": false
+}

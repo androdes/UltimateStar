@@ -173,7 +173,7 @@ export const executeTransaction = async (tx: TransactionReturn) => {
 
 
 // Fonction pour vérifier l'état d'une transaction
-export const verifyTransaction = async (transactionSignature, withSignature=false) => {
+export const verifyTransaction = async (transactionSignature, withSignature=false): Promise<boolean | any> => {
     try {
         // Récupérer les détails de la transaction
         const transactionResponse = await getConnection().getTransaction(transactionSignature);
@@ -236,4 +236,16 @@ export const executeInstructions = async (instructions: InstructionReturn[], sub
         }
     }
     return true;
+}
+
+export async function withTimeout(promiseFn: () => Promise<any>, seconds: number): Promise<any> {
+    // Convertit les secondes en millisecondes pour setTimeout
+    let timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Temps écoulé")), seconds * 1000));
+    try {
+        // Attend la première promesse résolue (soit la promiseFn, soit le timeout)
+        return await Promise.race([promiseFn(), timeoutPromise]);
+    } catch (error) {
+        // Gère l'erreur (timeout ou erreur de promiseFn)
+        throw error;
+    }
 }

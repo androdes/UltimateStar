@@ -8,7 +8,7 @@ import {
     onWarpSleep, scan, subwarp, undockFromStarbase, warp, withdrawFromFleet, depositCargoToFleet
 } from "../core/FleetManager.ts";
 
-import {getTransactionDetails, waitForState} from "../core/Globals.ts";
+import {getTransactionDetails, waitForState, withTimeout} from "../core/Globals.ts";
 import {getNbSDULastMinute, getNbSDULastSeconds} from "../core/SDUTracker.ts";
 export async function handleWarp(bot: any) {
     if (await canExitWarp(bot.name)) {
@@ -68,6 +68,18 @@ function extractData(logs: string[]): ExtractedData {
     return extractedData;
 }
 
+async function timedScan(botName: string, timeoutSeconds: number) {
+    let resultatScan;
+    try {
+        resultatScan = await withTimeout(() => scan(botName), timeoutSeconds);
+
+    } catch (error) {
+        console.error("<========================TIMEOUT======================>");
+        resultatScan=false;
+    }
+    return resultatScan;
+}
+
 let previousProbability = 0;
 async function doScan(bot: any, nbToolkits: number){
     const nbScans = Math.floor(nbToolkits / bot.toolPerScan);
@@ -79,7 +91,17 @@ async function doScan(bot: any, nbToolkits: number){
         //   await new Promise((resolve) => setTimeout(resolve, 0.5*1000));
         //   nbSDUCollected=await getNbSDULastSeconds(1);
         //}
-        const result = await scan(bot.name);
+        let result;
+        try{
+            result = await timedScan(bot.name, 60);
+            if(result===false){
+                console.log("Reboot");
+                process.exit(0);
+            }
+        }catch (e) {
+            console.log("Reboot timeout");
+            process.exit(0);
+        }
 
         const nbToolkits = await getFleetResourceAmount(bot.name, "tool") as number;
         const nbSDU = await getFleetResourceAmount(bot.name, "sdu") as number;

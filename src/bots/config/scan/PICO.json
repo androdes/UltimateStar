@@ -1,10 +1,10 @@
 {
   "name": "PICO",
-  "route": [[40, 30],[30, 18]],
+  "route": [[40, 30],[17, 21]],
   "cooldown": 56,
-  "toolPerScan": 10,
-  "toolsReloadAmount": 240,
-  "fullFuel": 450,
+  "toolPerScan": 20,
+  "toolsReloadAmount": 480,
+  "fullFuel": 900,
   "warpCooldown": 60,
   "warper": false
 }

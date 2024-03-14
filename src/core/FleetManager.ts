@@ -16,7 +16,7 @@ import {
     Resource, ScanForSurveyDataUnitsInput,
     StarbasePlayer,
     StartMiningAsteroidInput,
-    StartSubwarpInput, SurveyDataUnitTracker,
+    StartSubwarpInput, StopSubwarpInput, SurveyDataUnitTracker,
     WarpToCoordinateInput
 } from "@staratlas/sage";
 import {GAME_ID, SAGE_RESOURCES_MINTS, SDU_TRACKER} from "../common/Constants.ts";
@@ -25,7 +25,7 @@ import {
     SAGE_PROGRAM,
     PLAYER_PROFILE_KEY,
     PROFILE_FACTION_KEY,
-    prepareTransaction, executeTransaction, GAME, verifyTransaction, CARGO_PROGRAM, waitForState
+    prepareTransaction, executeTransaction, GAME, verifyTransaction, CARGO_PROGRAM, waitForState, executeInstructions
 } from "./Globals.ts";
 import {ComputeBudgetProgram, PublicKey} from "@solana/web3.js";
 import {Account, getAssociatedTokenAddress, getAssociatedTokenAddressSync} from "@solana/spl-token";
@@ -48,7 +48,7 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 17000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 15000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -659,6 +659,7 @@ export const subwarp = async (fleetName: string, toStarbaseName: string|[number,
         starbaseAccount = await getStarbaseAccount(toStarbaseName);
         coordinates = starbaseAccount.data.sector as [BN, BN];
     }else{
+        console.log(`Subwarp to coordinates ${JSON.stringify(toStarbaseName)}`);
         coordinates = [new BN(toStarbaseName[0]), new BN(toStarbaseName[1])];
     }
     const gameState =GAME.data.gameState as PublicKey;
@@ -835,6 +836,8 @@ export const scan = async (fleetName: string) => {
                 console.log(`Erreur lors de la transaction, vérification de la signature : ${e.signature}`);
                 console.log(`${JSON.stringify(e)}`);
                 await verifyTransaction(e.signature, true);
+
+
             } else {
                 console.error(`Erreur sans signature de transaction : ${e}`);
                 throw e;
@@ -922,6 +925,46 @@ export const exitWarp = async (fleetName: string) =>{
             throw e;
         }
     }
+}
+
+export const stopSubwarp = async (fleetName: string)=>{
+    const fleetAccount: Fleet = await getFleetAccount(fleetName);
+    const fuelCargoPod = fleetAccount.data.fuelTank as PublicKey;
+    const [fuelCargoType] = await getCargoTypeAddress(GAME.data.mints.fuel as PublicKey);
+    const cargoStatsDefinition = await getCargoStatsDefinition();
+    const input: StopSubwarpInput ={
+        keyIndex: 0
+    }
+    const tokenAccountTo = (
+        await getParsedTokenAccountsByOwner(
+            getConnection(),
+            fuelCargoPod
+        )
+    ).find(
+        (tokenAccount) => tokenAccount.mint.toBase58() === SAGE_RESOURCES_MINTS["fuel"].toBase58()
+    );
+    const ix: InstructionReturn[] = [];
+    const priority = [addPriorityFee];
+    ix.push(...priority);
+    ix.push(await Fleet.stopSubwarp(
+        SAGE_PROGRAM,
+        signer,
+        PLAYER_PROFILE_KEY,
+        PROFILE_FACTION_KEY,
+        fleetAccount.key,
+        fuelCargoPod,
+        fuelCargoType,
+        cargoStatsDefinition.key,
+        tokenAccountTo?.address as PublicKey,
+        SAGE_RESOURCES_MINTS["fuel"],
+        GAME_ID,
+        GAME.data.gameState as PublicKey,
+        CARGO_PROGRAM,
+        input
+    ));
+    return await executeInstructions(ix, fleetName, "Stop subwarp");
+
+
 }
 
 export const getFleetResourceAmount = async (fleetName: string, resource: string)=>{
