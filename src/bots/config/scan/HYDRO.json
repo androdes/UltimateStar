@@ -1,0 +1,11 @@
+{
+  "name": "HYDRO",
+  "route": [[40, 30],[15, 18]],
+  "cooldown": 63,
+  "toolPerScan": 51,
+  "toolsReloadAmount": 21318,
+  "fullFuel": 11838,
+  "warpCooldown": 180,
+  "warper": false,
+  "timeout": 63
+}

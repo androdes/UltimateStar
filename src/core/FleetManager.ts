@@ -48,7 +48,7 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 15000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -772,7 +772,7 @@ export const warp = async (fleetName: string, toStarbaseName: string|[number, nu
     try {
         let rx= await executeTransaction(tx);
         if (!rx.value.isOk()) {
-            throw Error(`${fleetName} Failed to warp to ${toStarbaseName} `);
+            throw Error(`${fleetName} Failed to warp to ${toStarbaseName} ${JSON.stringify(rx.value)}`);
         }
         console.log(`${fleetName} starts warp !`);
     }catch (e) {

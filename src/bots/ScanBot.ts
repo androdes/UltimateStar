@@ -93,7 +93,7 @@ async function doScan(bot: any, nbToolkits: number){
         //}
         let result;
         try{
-            result = await timedScan(bot.name, 60);
+            result = await timedScan(bot.name, bot.timeout);
             if(result===false){
                 console.log("Reboot");
                 process.exit(0);

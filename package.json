@@ -17,7 +17,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-
     "@staratlas/crafting": "^0.9.7",
     "@staratlas/data-source": "^0.6.5",
     "@staratlas/factory": "^0.6.0",
@@ -25,7 +24,6 @@
     "@staratlas/profile-faction": "^0.3.5",
     "@staratlas/sage": "^0.9.7",
     "bs58": "^5.0.0",
-
     "discord.js": "^14.14.1",
     "fp-ts": "^2.16.1"
   }
