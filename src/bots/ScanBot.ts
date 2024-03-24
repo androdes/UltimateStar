@@ -11,6 +11,7 @@ import {
 import {getTransactionDetails, waitForState, withTimeout} from "../core/Globals.ts";
 import {getNbSDULastMinute, getNbSDULastSeconds} from "../core/SDUTracker.ts";
 export async function handleWarp(bot: any) {
+    console.log("Handle warp")
     if (await canExitWarp(bot.name)) {
         await exitWarp(bot.name);
     } else {

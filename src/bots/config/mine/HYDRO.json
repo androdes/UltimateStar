@@ -4,7 +4,7 @@
   "resource": "hydrogen",
   "route": [[40, 30]],
   "miningTime": 1500,
-  "foodReloadAmount": 128,
+  "foodReloadAmount": 129,
   "minFuel": 50,
   "fuelReloadAmount": 9788,
   "ammoReloadAmount": 0,

@@ -8,7 +8,13 @@ import {
 } from "../common/Constants.ts";
 
 import {PROFILE_FACTION_IDL, ProfileFactionAccount} from "@staratlas/profile-faction";
-import {Connection, PublicKey} from "@solana/web3.js";
+import {
+    Connection,
+    PublicKey,
+    TransactionInstruction,
+    AddressLookupTableAccount,
+    ComputeBudgetProgram, VersionedTransaction, TransactionMessage
+} from "@solana/web3.js";
 import {signer, wallet} from "./Wallet.ts";
 import {AnchorProvider, Program} from "@project-serum/anchor";
 import {CARGO_IDL} from "@staratlas/cargo";
@@ -248,4 +254,32 @@ export async function withTimeout(promiseFn: () => Promise<any>, seconds: number
         // Gère l'erreur (timeout ou erreur de promiseFn)
         throw error;
     }
+}
+
+export async function getSimulationUnits(
+    instructions: TransactionInstruction[],
+    payer: PublicKey,
+    lookupTables: AddressLookupTableAccount[]
+): Promise<number | undefined> {
+    const testInstructions = [
+        ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }),
+        ...instructions,
+    ];
+
+    const testVersionedTxn = new VersionedTransaction(
+        new TransactionMessage({
+            instructions: testInstructions,
+            payerKey: payer,
+            recentBlockhash: PublicKey.default.toString(),
+        }).compileToV0Message(lookupTables)
+    );
+
+    const simulation = await getConnection().simulateTransaction(testVersionedTxn, {
+        replaceRecentBlockhash: true,
+        sigVerify: false,
+    });
+    if (simulation.value.err) {
+        return undefined;
+    }
+    return simulation.value.unitsConsumed;
 }

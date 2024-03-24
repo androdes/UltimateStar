@@ -25,7 +25,14 @@ import {
     SAGE_PROGRAM,
     PLAYER_PROFILE_KEY,
     PROFILE_FACTION_KEY,
-    prepareTransaction, executeTransaction, GAME, verifyTransaction, CARGO_PROGRAM, waitForState, executeInstructions
+    prepareTransaction,
+    executeTransaction,
+    GAME,
+    verifyTransaction,
+    CARGO_PROGRAM,
+    waitForState,
+    executeInstructions,
+    getSimulationUnits
 } from "./Globals.ts";
 import {ComputeBudgetProgram, PublicKey} from "@solana/web3.js";
 import {Account, getAssociatedTokenAddress, getAssociatedTokenAddressSync} from "@solana/spl-token";
@@ -48,7 +55,18 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 5000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 30000 });
+            resolve({ instruction, signers: [] });  // Resolve the promise with the result
+        } catch (error) {
+            reject(error);  // Reject the promise if an error occurs
+        }
+    });
+};
+
+const addSDUFee: InstructionReturn = (x) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 152000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -818,6 +836,7 @@ export const scan = async (fleetName: string) => {
     let ix =[];
     let tx;
     if(sduTokenTo.instructions){
+
         const priorityx = [addPriorityFee];
         ix.push(...priorityx);
         ix.push(sduTokenTo.instructions);
@@ -854,8 +873,9 @@ export const scan = async (fleetName: string) => {
     if (!repairKitTokenFrom) throw new NoEnoughRepairKits("NoEnoughRepairKits");
     const input = { keyIndex: 0 } as ScanForSurveyDataUnitsInput;
     ix=[];
-
-    const priority = [addPriorityFee];
+    const units = await getSimulationUnits(ix, signer.publicKey(), []);
+    console.log(`Units necessary ${units}`);
+    const priority = [addSDUFee];
     ix.push(...priority);
     ix.push(await SurveyDataUnitTracker.scanForSurveyDataUnits(
         SAGE_PROGRAM,
@@ -911,7 +931,7 @@ export const exitWarp = async (fleetName: string) =>{
     try {
         let rx= await executeTransaction(tx);
         if (!rx.value.isOk()) {
-            throw Error(`${fleetName} Failed to exit warp  `);
+            throw Error(`${fleetName} Failed to exit warp  ${JSON.stringify(rx.value)}`);
         }
         console.log(`${fleetName} exit warp complete !`);
     }catch (e) {

@@ -1,6 +1,6 @@
 {
   "name": "HYDRO",
-  "route": [[40, 30],[15, 18]],
+  "route": [[40, 30],[24, 22]],
   "cooldown": 63,
   "toolPerScan": 51,
   "toolsReloadAmount": 21318,
