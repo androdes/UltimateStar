@@ -174,7 +174,7 @@ export const prepareTransaction = async (instructions: InstructionReturn | Instr
 
 
 export const executeTransaction = async (tx: TransactionReturn) => {
-    return await sendTransaction(tx, getConnection(), {sendOptions:{skipPreflight: true}, commitment: 'confirmed'});
+    return await sendTransaction(tx, getConnection(), {sendOptions:{skipPreflight: true, maxRetries: 2}, commitment: 'confirmed'});
 }
 
 

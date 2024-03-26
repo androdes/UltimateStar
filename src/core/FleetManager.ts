@@ -51,11 +51,20 @@ import {
 import {getCargoStatsDefinition, getCargoTypeAddress, getCargoPodByAuthority} from "./CargoManager.ts";
 import {PLANET_LOOKUP} from "./PlanetManager.ts";
 
+export let priorityFees = 35000;
+export let priorityFeesSDU = 75000;
 
+export const setSDUFees = (fees: number) =>{
+    priorityFeesSDU = fees;
+}
+
+export const setPriorityFees = (fees: number) =>{
+    priorityFees = fees;
+}
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 30000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFees });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -66,7 +75,7 @@ const addPriorityFee: InstructionReturn = (x) => {
 const addSDUFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 152000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: priorityFeesSDU });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -809,7 +818,7 @@ export const warp = async (fleetName: string, toStarbaseName: string|[number, nu
 
 
 
-export const scan = async (fleetName: string) => {
+export const scan = async (fleetName: string, spamBasket = []) => {
     const fleetAccount: Fleet = await getFleetAccount(fleetName);
     //console.log(`Account ${JSON.stringify(fleetAccount)}`);
     const [sduCargoType] = await getCargoTypeAddress(SAGE_RESOURCES_MINTS["sdu"]);
@@ -841,6 +850,7 @@ export const scan = async (fleetName: string) => {
         ix.push(...priorityx);
         ix.push(sduTokenTo.instructions);
         tx = await prepareTransaction(ix);
+
         console.log(`${fleetName} sdu token account to create`);
         try {
             let rx= await executeTransaction(tx);
@@ -873,8 +883,8 @@ export const scan = async (fleetName: string) => {
     if (!repairKitTokenFrom) throw new NoEnoughRepairKits("NoEnoughRepairKits");
     const input = { keyIndex: 0 } as ScanForSurveyDataUnitsInput;
     ix=[];
-    const units = await getSimulationUnits(ix, signer.publicKey(), []);
-    console.log(`Units necessary ${units}`);
+    //const units = await getSimulationUnits(ix, signer.publicKey(), []);
+    //console.log(`Units necessary ${units}`);
     const priority = [addSDUFee];
     ix.push(...priority);
     ix.push(await SurveyDataUnitTracker.scanForSurveyDataUnits(
@@ -899,12 +909,13 @@ export const scan = async (fleetName: string) => {
     ));
 
     tx = await prepareTransaction(ix);
-    //console.log(`${fleetName} scan start`);
+    console.log(`${fleetName} scan start `);
     try {
         let rx= await executeTransaction(tx);
         if (!rx.value.isOk()) {
-            throw Error(`${fleetName} Failed to scan  `);
+            throw Error(`${fleetName} Failed to scan `);
         }
+        spamBasket.push(rx.value);
         return rx.value;
         console.log(`${fleetName} Scan complete !`);
     }catch (e) {

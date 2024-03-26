@@ -11,7 +11,8 @@ import {
     withdrawFromFleet
 } from "../core/FleetManager.ts";
 import {disbandedFleetDataEquals} from "@staratlas/sage";
-import {getSimulationUnits, waitForState} from "../core/Globals.ts";
+import {getConnection, getSimulationUnits, waitForState} from "../core/Globals.ts";
+import {Connection} from "@solana/web3.js";
 
 //await exchangeOrderSell(SAGE_RESOURCES_MINTS["sdu"], 344);
 //await exchangeOrderBuy(SAGE_RESOURCES_MINTS["fuel"], 20000);
@@ -61,5 +62,9 @@ async function subwarpTo(coordinates:[number, number],fleetName = "CALI" ){
 //await exitWarp("CALI");
 
 //await undockFromStarbase("CALI", "UST-CSS");
-//await subwarpTo("CALI", [44,10])
-await warpTo([17,19]);
+//await stopSubwarp("CALI");
+
+//await subwarpTo([13,19]);
+//await stopSubwarp("CALI");
+await warpTo([25,19], "FIBO");
+

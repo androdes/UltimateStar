@@ -1,15 +1,31 @@
 import {
     canExitSubwarp,
-    canExitWarp, dockToStarbase, exitSubwarp,
+    canExitWarp,
+    dockToStarbase,
+    exitSubwarp,
     exitWarp,
-    getFleetResourceAmount, getFleetState, isIdle, isMoveSubwarp,
+    getFleetResourceAmount,
+    getFleetState,
+    isIdle,
+    isMoveSubwarp,
     isMoveWarp,
-    isStarbaseLoadingBay, onSubwarpSleep,
-    onWarpSleep, scan, subwarp, undockFromStarbase, warp, withdrawFromFleet, depositCargoToFleet
+    isStarbaseLoadingBay,
+    onSubwarpSleep,
+    onWarpSleep,
+    scan,
+    subwarp,
+    undockFromStarbase,
+    warp,
+    withdrawFromFleet,
+    depositCargoToFleet,
+    setSDUFees,
+    priorityFeesSDU
 } from "../core/FleetManager.ts";
 
 import {getTransactionDetails, waitForState, withTimeout} from "../core/Globals.ts";
 import {getNbSDULastMinute, getNbSDULastSeconds} from "../core/SDUTracker.ts";
+import * as path from "path";
+import * as fs from "fs";
 export async function handleWarp(bot: any) {
     console.log("Handle warp")
     if (await canExitWarp(bot.name)) {
@@ -69,10 +85,10 @@ function extractData(logs: string[]): ExtractedData {
     return extractedData;
 }
 
-async function timedScan(botName: string, timeoutSeconds: number) {
+async function timedScan(botName: string, timeoutSeconds: number, spambasket = []) {
     let resultatScan;
     try {
-        resultatScan = await withTimeout(() => scan(botName), timeoutSeconds);
+        resultatScan = await withTimeout(() => scan(botName, spambasket), timeoutSeconds);
 
     } catch (error) {
         console.error("<========================TIMEOUT======================>");
@@ -83,18 +99,37 @@ async function timedScan(botName: string, timeoutSeconds: number) {
 
 let previousProbability = 0;
 async function doScan(bot: any, nbToolkits: number){
+    const previous = getPreviousScan(bot);
+    previous.tools = nbToolkits;
+    saveScan(bot, previous);
+    console.log(`Previous ${previous.tools}`);
     const nbScans = Math.floor(nbToolkits / bot.toolPerScan);
+    let spamBasket = [];
     for (let i = 0; i < nbScans; i++) {
         const nbSDUBefore = await getFleetResourceAmount(bot.name, "sdu") as number;
         let nbSDUCollected =1500;
-        console.log("Trying to find SDU");
+        if(bot.sduFees && bot.sduFees>0){
+            setSDUFees(bot.sduFees);
+        }
+        console.log(`Trying to find SDU with ${priorityFeesSDU} micro lamports`);
         //while (nbSDUCollected>0){
         //   await new Promise((resolve) => setTimeout(resolve, 0.5*1000));
         //   nbSDUCollected=await getNbSDULastSeconds(1);
         //}
         let result;
+        let spamKits = await getFleetResourceAmount(bot.name, "tool") as number;
         try{
-            result = await timedScan(bot.name, bot.timeout);
+
+            while(previous.tools===spamKits){
+                console.log("Spamming");
+                result = await timedScan(bot.name, bot.timeout, spamBasket);
+                spamKits = await getFleetResourceAmount(bot.name, "tool") as number;
+                console.log(`Spamkits: ${spamKits}`);
+            }
+            previous.tools = spamKits;
+            saveScan(bot, previous);
+            result=true;
+            console.log(`${JSON.stringify(spamBasket)}`)
             if(result===false){
                 console.log("Reboot");
                 process.exit(0);
@@ -112,8 +147,8 @@ async function doScan(bot: any, nbToolkits: number){
         }
         let executionTime = 0;
         let waitTime=parseInt(bot.cooldown);
-        if(result.value){
-            const details = await getTransactionDetails(result.value);
+        if(spamBasket.length>0){
+            const details = await getTransactionDetails(spamBasket[0].value);
             if(details && details.blockTime){
                 executionTime = new Date().getTime()/1000 - details?.blockTime;
             }
@@ -124,9 +159,10 @@ async function doScan(bot: any, nbToolkits: number){
 
             previousProbability = extracted.SDUProbability ? extracted.SDUProbability : 0 ;
             console.log(`Result : ${JSON.stringify(extracted)}`);
+            spamBasket =[];
         }
         if(nbSDUBefore<nbSDU){
-            console.log(`Found SDU, cooling down`);
+            console.log(`Found ${nbSDU-nbSDUBefore} SDU `);
             //waitTime*=2;
         }
         console.log(`Scan Exec time ${executionTime} real cooldown ${waitTime} `);
@@ -198,6 +234,21 @@ export async function handleSubwarp(bot: any){
     }
 }
 
+function getPreviousScan(bot){
+    const filePath = path.join(__dirname, 'spam'+bot.name+'.json');
+    const rawData = fs.readFileSync(filePath, { encoding: 'utf8' });
+    return JSON.parse(rawData);
+}
+async function isScanDone(bot){
+    const nbToolkits = await getFleetResourceAmount(bot.name, "tool") as number;
+    const previous = getPreviousScan();
+    return nbToolkits === previous.tools;
+}
+
+function saveScan(bot, scan: any){
+    const filePath = path.join(__dirname, 'spam'+bot.name+'.json');
+    fs.writeFileSync(filePath, JSON.stringify(scan, null, 2), { encoding: 'utf8' });
+}
 
 export async function run(army: any){
     console.log(`Starting script for ${army.name}`);
@@ -210,7 +261,8 @@ export async function run(army: any){
                 return i;
             }
         }
-        return -1;
+        console.error(`Route ${JSON.stringify(army.route)} does not match state ${JSON.stringify(sector)}`);
+        process.exit(0);
     }
     const sstate = await getFleetState(army.name);
     console.log(`State is ${JSON.stringify(sstate)}`);
