@@ -55,7 +55,7 @@ import {PLANET_LOOKUP} from "./PlanetManager.ts";
 const addPriorityFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 30000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -66,7 +66,7 @@ const addPriorityFee: InstructionReturn = (x) => {
 const addSDUFee: InstructionReturn = (x) => {
     return new Promise((resolve, reject) => {
         try {
-            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 152000 });
+            const instruction = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 300000 });
             resolve({ instruction, signers: [] });  // Resolve the promise with the result
         } catch (error) {
             reject(error);  // Reject the promise if an error occurs
@@ -325,7 +325,7 @@ export const withdrawFromFleet = async (fleetName: string, resource: string, amo
 
 
 
-export const depositCargoToFleet = async (fleetName: string, resource: string, amount: number, starbaseName: string) => {
+export const depositCargoToFleet = async (fleetName: string, resource: string, amount: number, starbaseName: string, exactAmount =true) => {
     const ix: InstructionReturn[] = [];
     const fleetPubkey = getFleetAddress(fleetName);
     if (amount < 0) throw new Error("Amount can't be negative");
@@ -400,7 +400,12 @@ export const depositCargoToFleet = async (fleetName: string, resource: string, a
 
     //topup explicit amount
     if(tokenAccountTo && amount<999999){
-        const alreadyIn = Number(tokenAccountTo.amount);
+        let alreadyIn = Number(tokenAccountTo.amount);
+        if(alreadyIn==0.5){
+            console.log("Changed already in");
+            alreadyIn=0;
+        }
+        console.log(`Amount already in ${alreadyIn}`);
         amount = amount - alreadyIn;
         if(amount<=0){
             console.error(`${fleetName} a déjà le cargo rempli`);
@@ -409,9 +414,15 @@ export const depositCargoToFleet = async (fleetName: string, resource: string, a
     }
 
     // amount > fleet free capacity?
-    let amountBN = BN.min(new BN(amount), tokenAccountTo ? new BN(cargoCapacity).sub(new BN(tokenAccountTo.amount))
-        : new BN(cargoCapacity)
-    );
+    let amountBN;
+    if(!exactAmount){
+        amountBN=BN.min(new BN(amount), tokenAccountTo ? new BN(cargoCapacity).sub(new BN(tokenAccountTo.amount))
+            : new BN(cargoCapacity)
+        );
+    }else{
+        console.log(`Putting exact amount ${amount}`);
+        amountBN = new BN(amount);
+    }
     console.log(`${fleetName} Amount deposit: ${amountBN} starbase amount is ${tokenAccountFrom.amount} delegated amount: ${tokenAccountFrom.delegatedAmount}` );
     // amount > starbase amount?
     amountBN = BN.min(amountBN, new BN(tokenAccountFrom.amount));
@@ -576,7 +587,7 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
 
     const resourceTokenTo = ataResourceTokenTo.address;
     ix.push(ataResourceTokenTo.instructions);
-    const priority = [addPriorityFee];
+    let priority = [addPriorityFee];
     ix.push(...priority);
     let tx1 = await prepareTransaction(ix);
     console.log(`${fleetName} tx prepared ATA resource token`);
@@ -599,6 +610,7 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
         }
     }
     ix =[];
+    priority = [addPriorityFee];
     ix.push(...priority);
 
     ix.push(
@@ -626,10 +638,34 @@ export const stopMining = async (fleetName: string, ore: string, starbaseName: s
             SAGE_RESOURCES_MINTS["food"],
             SAGE_RESOURCES_MINTS["ammo"]
         ));
+
+
+    let tx2 = await prepareTransaction(ix);
+    console.log(`${fleetName} tx prepared asteroid mining handler`);
+    try {
+        let rx2= await executeTransaction(tx2);
+        if (!rx2.value.isOk()) {
+            throw Error(`${fleetName} Failed to asteroid`);
+            return;
+        }
+        console.log(`${fleetName} created asteroid!`);
+    }catch (e) {
+
+        if (e && e.signature) {
+            console.log(`Erreur lors de la transaction asteroid, vérification de la signature : ${e.signature}`);
+            console.log(`${JSON.stringify(e)}`);
+            await verifyTransaction(e.signature);
+        } else {
+            console.error(`Erreur sans signature de transaction : ${e}`);
+            return;
+        }
+    }
     //console.log("asteroidMiningHandler ok");
     const input = { keyIndex: 0 } as StopMiningAsteroidInput;
     const resourceKey = fleetAccount.state.MineAsteroid?.resource as PublicKey;
-
+    priority = [addSDUFee];
+    ix=[];
+    ix.push(...priority);
     ix.push(await Fleet.stopMiningAsteroid(
         SAGE_PROGRAM,
         CARGO_PROGRAM,

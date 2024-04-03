@@ -4,9 +4,9 @@
   "resource": "hydrogen",
   "route": [[40, 30]],
   "miningTime": 1500,
-  "foodReloadAmount": 129,
-  "minFuel": 50,
-  "fuelReloadAmount": 9788,
+  "foodReloadAmount": 65,
+  "minFuel": 150,
+  "fuelReloadAmount": 14682,
   "ammoReloadAmount": 0,
   "warpCooldown": 180,
   "warper": false

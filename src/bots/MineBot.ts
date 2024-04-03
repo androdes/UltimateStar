@@ -34,13 +34,13 @@ export async function run(bot: any) {
             }
             if(fuelAmount<=bot.minFuel){
                 console.log("Deposit fuel");
-                await depositCargoToFleet(bot.name, "fuel", 999999, bot.starbase);
+                await depositCargoToFleet(bot.name, "fuel", bot.fuelReloadAmount, bot.starbase);
             }
             if(foodAmount<bot.foodReloadAmount){
                 console.log(`Deposit food ${bot.foodReloadAmount-foodAmount}`);
-                await depositCargoToFleet(bot.name, "food", bot.foodReloadAmount, bot.starbase);
+                await depositCargoToFleet(bot.name, "food", bot.foodReloadAmount, bot.starbase, true);
             }
-            if(foodAmount===bot.foodReloadAmount && resourceAmount===0){
+            if(foodAmount===bot.foodReloadAmount && resourceAmount===0 && fuelAmount>bot.minFuel){
                 await undockFromStarbase(bot.name, bot.starbase);
             }
         }

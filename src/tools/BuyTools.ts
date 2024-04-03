@@ -37,9 +37,9 @@ async function subwarpTo(coordinates:[number, number],fleetName = "CALI" ){
 //await stopSubwarp("CALI");
 
 //await subwarpTo("CALI", [33,16])
-//await exitSubwarp("CALI");
+
 //await undockFromStarbase("CALI", "UST-CSS");
-//await dockToStarbase("CALI", "MRZ-23");
+
 //await dockToStarbase("CALI", "UST-CSS");
 //await depositCargoToFleet("CALI", "fuel", 999999, "UST-CSS");
 //await undockFromStarbase("CALI", "MRZ-23");
@@ -62,4 +62,8 @@ async function subwarpTo(coordinates:[number, number],fleetName = "CALI" ){
 
 //await undockFromStarbase("CALI", "UST-CSS");
 //await subwarpTo("CALI", [44,10])
-await warpTo([17,19]);
+//await subwarpTo([42,35]);
+//await stopSubwarp("CALI");
+//await exitSubwarp("CALI");
+//await dockToStarbase("HYDRO", "UST-CSS");
+await dockToStarbase("HYDRO",  "UST-CSS");

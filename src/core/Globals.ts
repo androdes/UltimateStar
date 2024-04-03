@@ -13,7 +13,13 @@ import {
     PublicKey,
     TransactionInstruction,
     AddressLookupTableAccount,
-    ComputeBudgetProgram, VersionedTransaction, TransactionMessage
+    ComputeBudgetProgram,
+    VersionedTransaction,
+    TransactionMessage,
+    Finality,
+    SendOptions,
+    SerializeConfig,
+    RpcResponseAndContext, TransactionSignature, TransactionError
 } from "@solana/web3.js";
 import {signer, wallet} from "./Wallet.ts";
 import {AnchorProvider, Program} from "@project-serum/anchor";
@@ -28,6 +34,8 @@ import {
     sendTransaction,
     TransactionReturn
 } from "@staratlas/data-source";
+import {TransactionSender} from "@staratlas/data-source/src/transactions/transactionSender.ts";
+import {err, ok, Result} from "neverthrow";
 
 
 
@@ -172,6 +180,59 @@ export const prepareTransaction = async (instructions: InstructionReturn | Instr
 
 }
 
+export async function sendTransactionLocal(
+    transaction: TransactionReturn,
+    connection: TransactionSender,
+    options?: {
+        commitment?: Finality;
+        sendOptions?: SendOptions;
+        serializeConfig?: SerializeConfig;
+    },
+    retryInterval = 3000,
+    maxRetries = 10
+): Promise<
+    RpcResponseAndContext<Result<TransactionSignature, TransactionError>>
+> {
+    const rawTransaction = transaction.transaction.serialize(
+        options?.serializeConfig
+    );
+    const commitment = options?.commitment || 'confirmed';
+
+    const signature = await connection.sendRawTransaction(
+        rawTransaction,
+        options?.sendOptions
+    );
+
+    let count = 0;
+    const interval = setInterval(() => {
+        if (count < maxRetries) {
+            void connection.sendRawTransaction(rawTransaction, {
+                ...options?.sendOptions,
+                skipPreflight: true,
+            });
+        }
+        count++;
+    }, retryInterval);
+
+    let result;
+    try {
+        result = await connection.confirmTransaction(
+            {
+                signature,
+                ...transaction.rbh,
+            },
+            commitment
+        );
+    } finally {
+        clearInterval(interval);
+    }
+
+    if (result.value.err !== null) {
+        return { context: result.context, value: err(result.value.err) };
+    } else {
+        return { context: result.context, value: ok(signature) };
+    }
+}
 
 export const executeTransaction = async (tx: TransactionReturn) => {
     return await sendTransaction(tx, getConnection(), {sendOptions:{skipPreflight: true}, commitment: 'confirmed'});
